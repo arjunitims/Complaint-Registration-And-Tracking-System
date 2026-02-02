@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Complaint Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        .nav-btn {
+            background: white;
+            color: #667eea;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            text-decoration: none;
+            transition: transform 0.2s;
+        }
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+            font-size: 0.9em;
+        }
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        .filter-group select,
+        .filter-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th {
+            background: #f8f9fa;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #dee2e6;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        .badge-high { background: #dc3545; color: white; }
+        .badge-medium { background: #ffc107; color: #000; }
+        .badge-low { background: #28a745; color: white; }
+        .status-select {
+            padding: 6px 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+        .complaint-text {
+            max-width: 300px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+        }
+        .complaint-text:hover {
+            white-space: normal;
+            overflow: visible;
+        }
+        .action-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85em;
+        }
+        .action-btn:hover {
+            background: #5568d3;
+        }
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        .category-list, .priority-list {
+            margin-top: 10px;
+        }
+        .category-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Admin Control Panel</h1>
+            <p>Manage and resolve complaints</p>
+        </div>
+
+        <div class="nav-buttons">
+            <a href="/" class="nav-btn">Register Complaint</a>
+            <a href="/dashboard" class="nav-btn">Track Complaints</a>
+            <a href="/admin" class="nav-btn">Admin Panel</a>
+        </div>
+
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalCount">0</div>
+                <div class="stat-label">Total</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="openCount">0</div>
+                <div class="stat-label">Open</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="progressCount">0</div>
+                <div class="stat-label">In Progress</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="resolvedCount">0</div>
+                <div class="stat-label">Resolved</div>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 3fr 1fr; gap: 20px;">
+            <div class="card">
+                <h2 style="margin-bottom: 20px;">Complaint Management</h2>
+                
+                <div class="filters">
+                    <div class="filter-group">
+                        <label>Search</label>
+                        <input type="text" id="searchInput" placeholder="Search complaints...">
+                    </div>
+               <div class="filter-group">
+    <label>Filter by Nature Of Complaint</label>
+    <select id="categoryFilter">
+<option value="" disabled selected hidden>
+        
+    </option>
+ <option value="All Complaints">All Complaints</option> 
+ <option value="IT">IT</option> 
+<option value="Electrical">Electrical</option> 
+<option value="Civil">Civil</option> 
+<option value="Plumbing">Plumbing</option> 
+<option value="House Keeping">House Keeping</option> 
+<option value="Furniture">Furniture</option> 
+<option value="Telephone">Telephone</option> 
+<option value="Others">Others</option> 
+    </select>
+</div>
+
+
+
+                    
+
+                    <div class="filter-group">
+                        <label>Filter by Priority</label>
+                        <select id="priorityFilter">
+                     <option value="" disabled selected hidden>
+      
+                             </option>
+                            <option value="">All Priorities</option>
+                            <option value="High">High</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Low">Low</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Filter by Status</label>
+          <option value="" disabled selected hidden>
+       
+              </option>
+                        <select id="statusFilter">
+<option value="" disabled selected hidden>
+        
+    </option>
+                            <option value="">All Status</option>
+                            <option value="Open">Open</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Resolved">Resolved</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Contact</th>
+                                <th>Complaint</th>
+                                <th>Category</th>
+                               
+                                <th>Priority</th>
+                                <th>Est. Time</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="complaintsBody">
+                            <tr>
+                                <td colspan="8" class="no-data">Loading complaints...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-bottom: 15px;">Analytics</h3>
+                
+                <div style="margin-bottom: 20px;">
+                    <h4 style="margin-bottom: 10px;">By Category</h4>
+                    <div class="category-list" id="categoryList"></div>
+                </div>
+
+                <div>
+                    <h4 style="margin-bottom: 10px;">By Priority</h4>
+                    <div class="priority-list" id="priorityList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allComplaints = [];
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const stats = await response.json();
+                
+                document.getElementById('totalCount').textContent = stats.total;
+                document.getElementById('openCount').textContent = stats.open;
+                document.getElementById('progressCount').textContent = stats.in_progress;
+                document.getElementById('resolvedCount').textContent = stats.resolved;
+
+                const categoryList = document.getElementById('categoryList');
+                categoryList.innerHTML = Object.entries(stats.by_category)
+                    .map(([cat, count]) => `
+                        <div class="category-item">
+                            <span>${cat}</span>
+                            <strong>${count}</strong>
+                        </div>
+                    `).join('');
+
+                const priorityList = document.getElementById('priorityList');
+                priorityList.innerHTML = Object.entries(stats.by_priority)
+                    .map(([priority, count]) => `
+                        <div class="category-item">
+                            <span>${priority}</span>
+                            <strong>${count}</strong>
+                        </div>
+                    `).join('');
+
+                const categories = Object.keys(stats.by_category);
+                const categoryFilter = document.getElementById('categoryFilter');
+                const currentValue = categoryFilter.value;
+                categoryFilter.innerHTML = '<option value="">All Categories</option>' +
+                    categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+                categoryFilter.value = currentValue;
+
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        async function loadComplaints() {
+            try {
+                const response = await fetch('/api/complaints');
+                allComplaints = await response.json();
+                filterAndDisplayComplaints();
+            } catch (error) {
+                console.error('Error loading complaints:', error);
+            }
+        }
+
+        function filterAndDisplayComplaints() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const priorityFilter = document.getElementById('priorityFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            
+
+
+            let filtered = allComplaints.filter(complaint => {
+                const matchesSearch = 
+                    complaint.id.toString().includes(searchTerm) ||
+                    complaint.name.toLowerCase().includes(searchTerm) ||
+                    complaint.email.toLowerCase().includes(searchTerm) ||
+                    complaint.complaint_text.toLowerCase().includes(searchTerm);
+                const matchesCategory = !categoryFilter || complaint.category === categoryFilter;
+
+const matchesPriority = !priorityFilter || complaint.priority === priorityFilter;
+const matchesStatus = !statusFilter || complaint.status === statusFilter;
+
+return matchesSearch && matchesCategory &&  matchesPriority && matchesStatus;
+                           
+ });
+
+            displayComplaints(filtered);
+        }
+
+        function displayComplaints(complaints) {
+            const tbody = document.getElementById('complaintsBody');
+            
+            if (complaints.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="no-data">No complaints found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = complaints.map(complaint => `
+                <tr>
+                    <td>#${complaint.id}</td>
+                    <td>
+                        <strong>${complaint.name}</strong><br>
+                        <small>${complaint.email}</small>
+                    </td>
+                    <td>
+                        <div class="complaint-text" title="${complaint.complaint_text}">
+                            ${complaint.complaint_text}
+                        </div>
+                    </td>
+                    <td>${complaint.category}</td>
+                    
+                    <td><span class="badge badge-${complaint.priority.toLowerCase()}">${complaint.priority}</span></td>
+                    <td>${complaint.estimated_resolution_hours}h</td>
+                    <td>
+                        <select class="status-select" onchange="updateStatus(${complaint.id}, this.value)">
+                            <option value="Open" ${complaint.status === 'Open' ? 'selected' : ''}>Open</option>
+                            <option value="In Progress" ${complaint.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+                            <option value="Resolved" ${complaint.status === 'Resolved' ? 'selected' : ''}>Resolved</option>
+                        </select>
+                    </td>
+                    <td>
+                        <button class="action-btn" onclick="viewDetails(${complaint.id})">View</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function updateStatus(complaintId, newStatus) {
+            try {
+                const response = await fetch(`/api/update_status/${complaintId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status: newStatus })
+                });
+
+                if (response.ok) {
+                    loadComplaints();
+                    loadStats();
+                }
+            } catch (error) {
+                console.error('Error updating status:', error);
+            }
+        }
+
+        function viewDetails(complaintId) {
+            const complaint = allComplaints.find(c => c.id === complaintId);
+            if (complaint) {
+                alert(`Complaint Details:\n\nID: ${complaint.id}\nName: ${complaint.name}\nEmail: ${complaint.email}\nPhone: ${complaint.phone}\n\nComplaint:\n${complaint.complaint_text}\n\nCategory: ${complaint.category}\nPriority: ${complaint.priority}\nStatus: ${complaint.status}\nEstimated Resolution: ${complaint.estimated_resolution_hours} hours\nSubmitted: ${complaint.submitted_at}`);
+            }
+        }
+
+        document.getElementById('searchInput').addEventListener('input', filterAndDisplayComplaints);
+        document.getElementById('categoryFilter').addEventListener('change', filterAndDisplayComplaints);
+        document.getElementById('priorityFilter').addEventListener('change', filterAndDisplayComplaints);
+        document.getElementById('statusFilter').addEventListener('change', filterAndDisplayComplaints);
+      
+        loadStats();
+        loadComplaints();
+        setInterval(() => {
+            loadStats();
+            loadComplaints();
+        }, 5000);
+    </script>
+</body>
+</html>
