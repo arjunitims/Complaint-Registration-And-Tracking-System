@@ -2,7 +2,12 @@ import pickle
 import sys
 import os
 from flask import Flask, render_template, request, jsonify
-from database import init_db, insert_complaint, get_all_complaints
+from database import (
+    init_db,
+    insert_complaint,
+    get_all_complaints,
+    update_complaint_status
+)
 
 # ---------------- PATH FIX ----------------
 def resource_path(relative_path):
@@ -48,13 +53,9 @@ def submit_complaint():
         if not name or not complaint_text:
             return jsonify({"success": False, "error": "Missing required fields"}), 400
 
-        # ---- AI predictions ----
-      
         priority = priority_model.predict([complaint_text])[0]
-
         base_hours = float(resolution_model.predict([complaint_text])[0])
 
-        # ---- Priority-based adjustment (FIXED) ----
         if priority == "High":
             estimated_hours = base_hours + 6
         elif priority == "Medium":
@@ -69,26 +70,18 @@ def submit_complaint():
             email,
             phone,
             category,
-          
             complaint_text,
             priority,
             estimated_hours,
             "Submitted"
         )
 
-        return jsonify({
-            "success": True,
-            "complaint": {
-                "id": complaint_id,
-                "category": category,
-                "priority": priority,
-                "estimated_resolution_hours": estimated_hours
-            }
-        })
+        return jsonify({"success": True, "id": complaint_id})
 
     except Exception as e:
         print("❌ ERROR:", e)
         return jsonify({"success": False, "error": "Server error"}), 500
+
 # ---------------- GET COMPLAINTS ----------------
 @app.route("/api/complaints")
 def api_complaints():
@@ -101,8 +94,7 @@ def api_complaints():
             "name": r[1],
             "email": r[2],
             "phone": r[3],
-            "category": r[4],                 # ✅ SAME FIELD NAME
-            
+            "category": r[4],
             "complaint_text": r[5],
             "priority": r[6],
             "estimated_resolution_hours": r[7],
@@ -111,6 +103,50 @@ def api_complaints():
         })
 
     return jsonify(data)
+
+# ---------------- UPDATE STATUS (NEW) ----------------
+@app.route("/api/update_status/<int:complaint_id>", methods=["POST"])
+def update_status(complaint_id):
+    try:
+        data = request.get_json()
+        new_status = data.get("status")
+
+        if new_status not in ["Open", "In Progress", "Resolved"]:
+            return jsonify({"error": "Invalid status"}), 400
+
+        update_complaint_status(complaint_id, new_status)
+
+        return jsonify({"success": True})
+
+    except Exception as e:
+        print("❌ STATUS UPDATE ERROR:", e)
+        return jsonify({"error": "Server error"}), 500
+# ---------------- STATS ----------------
+@app.route("/api/stats")
+def api_stats():
+    rows = get_all_complaints()
+
+    total = len(rows)
+    open_count = 0
+    in_progress = 0
+    resolved = 0
+
+    for r in rows:
+        status = r[8]
+
+        if status in ("Submitted", "Open"):
+            open_count += 1
+        elif status == "In Progress":
+            in_progress += 1
+        elif status == "Resolved":
+            resolved += 1
+
+    return jsonify({
+        "total": total,
+        "open": open_count,
+        "in_progress": in_progress,
+        "resolved": resolved
+    })
 
 # ---------------- MAIN ----------------
 if __name__ == "__main__":
